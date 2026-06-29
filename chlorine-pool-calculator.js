@@ -5,6 +5,7 @@ let lastDosing = JSON.parse(localStorage.getItem('poolLastDosing_chlorine') || '
 let trendChart = null;
 let activeTrend = 'fc';
 let unitLabel = 'ppm';
+let chMode = 'ch';
 
 function escapeHtml(str) {
   return String(str)
@@ -30,6 +31,22 @@ function updateVolume() {
   updateAll();
 }
 
+function setChMode(mode) {
+  chMode = mode;
+  document.getElementById('ch-mode-ch').style.background = mode === 'ch' ? '#639922' : '#f5f5f3';
+  document.getElementById('ch-mode-ch').style.color      = mode === 'ch' ? '#fff'    : '#888';
+  document.getElementById('ch-mode-th').style.background = mode === 'th' ? '#639922' : '#f5f5f3';
+  document.getElementById('ch-mode-th').style.color      = mode === 'th' ? '#fff'    : '#888';
+  document.getElementById('ch-label').textContent = mode === 'th' ? 'Total Hardness (TH)' : 'Calcium Hardness (CH)';
+  document.getElementById('ch').placeholder = mode === 'th' ? '300' : '250';
+  updateAll();
+}
+
+function effectiveCH(raw) {
+  if (raw === null) return null;
+  return chMode === 'th' ? Math.round(raw * 0.85) : raw;
+}
+
 function setUnit(u) {
   unitLabel = u;
   document.querySelectorAll('.unit-label').forEach(el => el.textContent = unitLabel);
@@ -53,13 +70,15 @@ function badge(val, low, high) {
 
 function updateAll() {
   const fc = v('fc'), cc = v('cc'), ph = v('ph'), ta = v('ta'),
-        ch = v('ch'), cya = v('cya'), tds = v('tds'), temp = v('temp');
+        cya = v('cya'), tds = v('tds'), temp = v('temp');
+  const ch = effectiveCH(v('ch'));
 
   document.getElementById('fc-status').innerHTML  = badge(fc,  2,    4);
   document.getElementById('cc-status').innerHTML  = badge(cc,  0,    0.5);
   document.getElementById('ph-status').innerHTML  = badge(ph,  7.2,  7.6);
   document.getElementById('ta-status').innerHTML  = badge(ta,  80,   120);
-  document.getElementById('ch-status').innerHTML  = badge(ch,  200,  400);
+  document.getElementById('ch-status').innerHTML  = badge(ch,  200,  400) +
+    (chMode === 'th' && ch !== null ? `<span style="font-size:12px;color:#888;display:block;margin-top:3px;">Est. CH: ${ch} ppm</span>` : '');
   document.getElementById('cya-status').innerHTML = badge(cya, 30,   50);
   document.getElementById('tds-status').innerHTML = badge(tds, 0,    1500);
   document.getElementById('temp-status').innerHTML = temp !== null
@@ -250,7 +269,7 @@ function logReading() {
     ts: Date.now(),
     gallons: poolGallons,
     fc: v('fc'), cc: v('cc'), ph: v('ph'), ta: v('ta'),
-    ch: v('ch'), cya: v('cya'), tds: v('tds'), temp: v('temp')
+    ch: effectiveCH(v('ch')), cya: v('cya'), tds: v('tds'), temp: v('temp')
   };
   const hasData = [entry.fc, entry.cc, entry.ph, entry.ta, entry.ch, entry.cya, entry.tds, entry.temp].some(x => x !== null);
   if (!hasData) { alert('Please enter at least one reading before logging.'); return; }

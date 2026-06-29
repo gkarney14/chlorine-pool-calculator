@@ -3,8 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'none'; connect-src 'none'">
 <title>Chlorine Pool Chemistry Calculator</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.10.0/dist/tabler-icons.min.css" integrity="sha384-enQOo0dFaqOuACimJrhDH3XtzLk5jDIo5gfCGUvfZWLoiAyi/Jf+Ny5+etklU279" crossorigin="anonymous">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f3; color: #1a1a18; min-height: 100vh; padding: 1.5rem; }
@@ -108,8 +109,8 @@
     <div style="margin-left: auto; text-align: right;">
       <p style="font-size: 12px; color: #888;" id="last-logged">No readings logged</p>
       <div style="display:inline-flex; align-items:center; gap:0; margin-top:6px; border:1px solid #ddd; border-radius:6px; overflow:hidden;">
-        <button id="unit-ppm" onclick="setUnit('ppm')" style="padding:3px 10px;font-size:12px;border:none;cursor:pointer;background:#639922;color:#fff;font-weight:500;">ppm</button>
-        <button id="unit-mgl" onclick="setUnit('mgl')" style="padding:3px 10px;font-size:12px;border:none;cursor:pointer;background:#f5f5f3;color:#888;">mg/L</button>
+        <button id="unit-ppm" style="padding:3px 10px;font-size:12px;border:none;cursor:pointer;background:#639922;color:#fff;font-weight:500;">ppm</button>
+        <button id="unit-mgl" style="padding:3px 10px;font-size:12px;border:none;cursor:pointer;background:#f5f5f3;color:#888;">mg/L</button>
       </div>
     </div>
   </div>
@@ -118,16 +119,16 @@
   <div class="vol-bar">
     <i class="ti ti-pool" style="font-size:18px; color:#3B6D11;" aria-hidden="true"></i>
     <label for="pool-vol">Pool volume</label>
-    <input type="number" id="pool-vol" placeholder="e.g. 15000" min="100" max="500000" step="100" oninput="updateVolume()">
+    <input type="number" id="pool-vol" placeholder="e.g. 15000" min="100" max="500000" step="100">
     <span>gallons</span>
     <span id="vol-display"></span>
   </div>
 
   <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('readings', this)">Readings</button>
-    <button class="tab" onclick="switchTab('dosing', this)">Dosing</button>
-    <button class="tab" onclick="switchTab('trends', this)">Trends</button>
-    <button class="tab" onclick="switchTab('reference', this)">Reference</button>
+    <button class="tab active" data-tab="readings">Readings</button>
+    <button class="tab" data-tab="dosing">Dosing</button>
+    <button class="tab" data-tab="trends">Trends</button>
+    <button class="tab" data-tab="reference">Reference</button>
   </div>
 
   <!-- READINGS TAB -->
@@ -137,56 +138,62 @@
       <div class="card">
         <div class="input-group">
           <label>Free Chlorine (FC)</label>
-          <div class="input-row"><input type="number" id="fc" placeholder="0.0" step="0.1" min="0" max="20" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div class="input-row"><input type="number" id="fc" placeholder="0.0" step="0.1" min="0" max="20"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="fc-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>Combined Chlorine (CC)</label>
-          <div class="input-row"><input type="number" id="cc" placeholder="0.0" step="0.1" min="0" max="5" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div class="input-row"><input type="number" id="cc" placeholder="0.0" step="0.1" min="0" max="5"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="cc-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>pH</label>
-          <div class="input-row"><input type="number" id="ph" placeholder="7.4" step="0.1" min="6" max="9" oninput="updateAll()"></div>
+          <div class="input-row"><input type="number" id="ph" placeholder="7.4" step="0.1" min="6" max="9"></div>
         </div>
         <div id="ph-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>Total Alkalinity (TA)</label>
-          <div class="input-row"><input type="number" id="ta" placeholder="100" step="1" min="0" max="300" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div class="input-row"><input type="number" id="ta" placeholder="100" step="1" min="0" max="300"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="ta-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
-          <label>Calcium Hardness (CH)</label>
-          <div class="input-row"><input type="number" id="ch" placeholder="250" step="1" min="0" max="1000" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label id="ch-label" style="margin-bottom:0;">Calcium Hardness (CH)</label>
+            <div style="display:inline-flex;border:1px solid #ddd;border-radius:6px;overflow:hidden;flex-shrink:0;">
+              <button id="ch-mode-ch" onclick="setChMode('ch')" style="padding:2px 8px;font-size:11px;border:none;cursor:pointer;background:#639922;color:#fff;font-weight:500;">CH</button>
+              <button id="ch-mode-th" onclick="setChMode('th')" style="padding:2px 8px;font-size:11px;border:none;cursor:pointer;background:#f5f5f3;color:#888;">TH</button>
+            </div>
+          </div>
+          <div class="input-row"><input type="number" id="ch" placeholder="250" step="1" min="0" max="1000"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="ch-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>Cyanuric Acid (CYA)</label>
-          <div class="input-row"><input type="number" id="cya" placeholder="40" step="1" min="0" max="200" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div class="input-row"><input type="number" id="cya" placeholder="40" step="1" min="0" max="200"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="cya-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>Total Dissolved Solids (TDS)</label>
-          <div class="input-row"><input type="number" id="tds" placeholder="500" step="10" min="0" max="5000" oninput="updateAll()"><span class="unit unit-label">ppm</span></div>
+          <div class="input-row"><input type="number" id="tds" placeholder="500" step="10" min="0" max="5000"><span class="unit unit-label">ppm</span></div>
         </div>
         <div id="tds-status"></div>
       </div>
       <div class="card">
         <div class="input-group">
           <label>Water Temp</label>
-          <div class="input-row"><input type="number" id="temp" placeholder="78" step="1" min="32" max="110" oninput="updateAll()"><span class="unit">&deg;F</span></div>
+          <div class="input-row"><input type="number" id="temp" placeholder="78" step="1" min="32" max="110"><span class="unit">&deg;F</span></div>
         </div>
         <div id="temp-status"></div>
       </div>
@@ -201,7 +208,7 @@
       <p id="csi-note" style="font-size: 13px; color: #888; margin-top: 6px;"></p>
     </div>
 
-    <button class="log-btn" onclick="logReading()">
+    <button class="log-btn" id="log-btn">
       <i class="ti ti-device-floppy" aria-hidden="true"></i> Log this reading
     </button>
   </div>
@@ -218,32 +225,32 @@
       <div style="margin-bottom: 14px;">
         <label style="font-size: 13px; color: #666; display:block; margin-bottom:6px;">Sodium hypochlorite (NaOCl) — liquid chlorine</label>
         <div class="conc-selector" id="bleach-conc">
-          <button class="conc-btn" onclick="setConc('bleach', 6, this)">6%</button>
-          <button class="conc-btn" onclick="setConc('bleach', 8.25, this)">8.25%</button>
-          <button class="conc-btn sel" onclick="setConc('bleach', 10, this)">10%</button>
-          <button class="conc-btn" onclick="setConc('bleach', 12.5, this)">12.5%</button>
+          <button class="conc-btn" data-chem="bleach" data-val="6">6%</button>
+          <button class="conc-btn" data-chem="bleach" data-val="8.25">8.25%</button>
+          <button class="conc-btn sel" data-chem="bleach" data-val="10">10%</button>
+          <button class="conc-btn" data-chem="bleach" data-val="12.5">12.5%</button>
         </div>
       </div>
       <div style="margin-bottom: 14px;">
         <label style="font-size: 13px; color: #666; display:block; margin-bottom:6px;">Granular shock (calcium hypochlorite)</label>
         <div class="conc-selector" id="shock-conc">
-          <button class="conc-btn sel" onclick="setConc('shock', 65, this)">65%</button>
-          <button class="conc-btn" onclick="setConc('shock', 73, this)">73%</button>
+          <button class="conc-btn sel" data-chem="shock" data-val="65">65%</button>
+          <button class="conc-btn" data-chem="shock" data-val="73">73%</button>
         </div>
       </div>
       <div style="margin-bottom: 14px;">
         <label style="font-size: 13px; color: #666; display:block; margin-bottom:6px;">Muriatic acid</label>
         <div class="conc-selector" id="acid-conc">
-          <button class="conc-btn sel" onclick="setConc('acid', 14.5, this)">14.5% (½ strength)</button>
-          <button class="conc-btn" onclick="setConc('acid', 31.45, this)">31.45% (full)</button>
-          <button class="conc-btn" onclick="setConc('acid', 34, this)">34%</button>
+          <button class="conc-btn sel" data-chem="acid" data-val="14.5">14.5% (½ strength)</button>
+          <button class="conc-btn" data-chem="acid" data-val="31.45">31.45% (full)</button>
+          <button class="conc-btn" data-chem="acid" data-val="34">34%</button>
         </div>
       </div>
       <div>
         <label style="font-size: 13px; color: #666; display:block; margin-bottom:6px;">Trichlor tablets (for CYA tracking — not for FC raises)</label>
         <div class="conc-selector" id="trichlor-conc">
-          <button class="conc-btn sel" onclick="setConc('trichlor', 90, this)">90%</button>
-          <button class="conc-btn" onclick="setConc('trichlor', 99, this)">99%</button>
+          <button class="conc-btn sel" data-chem="trichlor" data-val="90">90%</button>
+          <button class="conc-btn" data-chem="trichlor" data-val="99">99%</button>
         </div>
       </div>
     </div>
@@ -261,7 +268,7 @@
       <p class="section-title">Log history</p>
       <div id="history-list"></div>
       <br>
-      <a class="clear-link" href="#" onclick="clearHistory(); return false;">
+      <a class="clear-link" href="#" id="clear-history-link">
         <i class="ti ti-trash" aria-hidden="true"></i> Clear all history
       </a>
     </div>
@@ -304,335 +311,7 @@
 
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<script>
-let poolGallons = null;
-let concs = { bleach: 10, shock: 65, acid: 14.5, trichlor: 90 };
-let history = JSON.parse(localStorage.getItem('poolHistory_chlorine') || '[]');
-let trendChart = null;
-let activeTrend = 'fc';
-let unitLabel = 'ppm';
-
-function updateVolume() {
-  const raw = parseFloat(document.getElementById('pool-vol').value);
-  poolGallons = (!isNaN(raw) && raw > 0) ? raw : null;
-  const disp = document.getElementById('vol-display');
-  if (poolGallons) {
-    disp.textContent = poolGallons.toLocaleString() + ' gal loaded';
-    document.getElementById('dosing-volume-label').textContent =
-      'Chemical adjustments — ' + poolGallons.toLocaleString() + ' gal';
-  } else {
-    disp.textContent = '';
-    document.getElementById('dosing-volume-label').textContent = 'Chemical adjustments';
-  }
-  updateAll();
-}
-
-function setUnit(u) {
-  unitLabel = u;
-  document.querySelectorAll('.unit-label').forEach(el => el.textContent = unitLabel);
-  document.getElementById('unit-ppm').style.background = u === 'ppm' ? '#639922' : '#f5f5f3';
-  document.getElementById('unit-ppm').style.color      = u === 'ppm' ? '#fff'    : '#888';
-  document.getElementById('unit-mgl').style.background = u === 'mgl' ? '#639922' : '#f5f5f3';
-  document.getElementById('unit-mgl').style.color      = u === 'mgl' ? '#fff'    : '#888';
-  updateAll();
-}
-
-function v(id) { return parseFloat(document.getElementById(id).value) || null; }
-
-function badge(val, low, high) {
-  if (val === null) return '';
-  let cls, txt;
-  if (val >= low && val <= high) { cls = 'status-ok'; txt = 'In range'; }
-  else if (val < low * 0.8 || val > high * 1.2) { cls = 'status-danger'; txt = 'Action needed'; }
-  else { cls = 'status-warn'; txt = 'Out of range'; }
-  return `<span class="status-badge ${cls}">${txt}</span>`;
-}
-
-function updateAll() {
-  const fc = v('fc'), cc = v('cc'), ph = v('ph'), ta = v('ta'),
-        ch = v('ch'), cya = v('cya'), tds = v('tds'), temp = v('temp');
-
-  document.getElementById('fc-status').innerHTML  = badge(fc,  2,    4);
-  document.getElementById('cc-status').innerHTML  = badge(cc,  0,    0.5);
-  document.getElementById('ph-status').innerHTML  = badge(ph,  7.2,  7.6);
-  document.getElementById('ta-status').innerHTML  = badge(ta,  80,   120);
-  document.getElementById('ch-status').innerHTML  = badge(ch,  200,  400);
-  document.getElementById('cya-status').innerHTML = badge(cya, 30,   50);
-  document.getElementById('tds-status').innerHTML = badge(tds, 0,    1500);
-  document.getElementById('temp-status').innerHTML = temp !== null
-    ? `<span style="font-size:13px;color:#888;">${temp}&deg;F</span>` : '';
-
-  calcLSI(ph, ta, ch, temp);
-  updateDosing(fc, cc, ph, ta, ch, cya, tds, temp);
-}
-
-function calcLSI(ph, ta, ch, temp) {
-  const box = document.getElementById('csi-box');
-  if (!ph || !ta || !ch || !temp) { box.style.display = 'none'; return; }
-  box.style.display = '';
-  const tc = (temp - 32) * 5 / 9;
-  const pHs = (9.3 + Math.log10(ta) - 1) + (Math.log10(ch) - 2) - (tc > 25 ? 0.3 : tc > 15 ? 0.2 : 0.1);
-  const lsi = ph - pHs;
-  let color, label, note;
-  if (lsi < -0.5)      { color = '#A32D2D'; label = 'Corrosive';          note = 'Water may etch plaster and corrode metal. Raise TA or calcium hardness.'; }
-  else if (lsi < -0.3) { color = '#854F0B'; label = 'Slightly corrosive'; note = 'Consider raising alkalinity or calcium hardness slightly.'; }
-  else if (lsi <= 0.3) { color = '#3B6D11'; label = 'Balanced';           note = 'Water is well-balanced — not scaling or corrosive.'; }
-  else if (lsi <= 0.5) { color = '#854F0B'; label = 'Slightly scaling';   note = 'Monitor — may deposit scale on surfaces and equipment.'; }
-  else                 { color = '#A32D2D'; label = 'Scaling';            note = 'Calcium scale will form. Lower TA, CH, or pH.'; }
-  document.getElementById('csi-value').textContent = lsi.toFixed(2);
-  document.getElementById('csi-value').style.color = color;
-  document.getElementById('csi-label').textContent = label;
-  document.getElementById('csi-note').textContent = note;
-}
-
-function bleachOz(ppmNeeded) {
-  if (!poolGallons) return null;
-  return (ppmNeeded * poolGallons * 0.000128) / (concs.bleach / 100);
-}
-
-function shockOz(ppmNeeded) {
-  if (!poolGallons) return null;
-  const lbsActive = ppmNeeded * poolGallons * 8.34 / 1000000;
-  const lbsShock = lbsActive / (concs.shock / 100);
-  return lbsShock * 16;
-}
-
-function updateDosing(fc, cc, ph, ta, ch, cya, tds, temp) {
-  const list = document.getElementById('dosing-list');
-  if (!poolGallons) {
-    list.innerHTML = '<p style="font-size:14px;color:#888;">Enter your pool volume above to see dosing recommendations.</p>';
-    return;
-  }
-  if (fc === null && ph === null && ta === null && ch === null && cya === null) {
-    list.innerHTML = '<p style="font-size:14px;color:#888;">Enter readings on the Readings tab to see dosing recommendations.</p>';
-    return;
-  }
-  const items = [];
-  const u = unitLabel;
-
-  if (fc !== null) {
-    if (fc < 2) {
-      const oz = bleachOz(3 - fc);
-      const shOz = shockOz(3 - fc);
-      items.push({
-        name: 'Add chlorine',
-        amount: `${oz.toFixed(1)} fl oz liquid (${(oz/128).toFixed(2)} gal)  or  ${(shOz/16).toFixed(2)} lbs granular shock`,
-        note: `${concs.bleach}% NaOCl or ${concs.shock}% cal-hypo to raise FC ${fc} → 3 ${u}`,
-        reading: fc, readingUnit: u, param: 'FC', cls: 'dose-warn'
-      });
-    } else if (fc > 5) {
-      items.push({ name: 'Free Chlorine — high', amount: 'Wait before adding more chlorine', note: `FC at ${fc} ${u}. Let it drop naturally or reduce dosing frequency.`, reading: fc, readingUnit: u, param: 'FC', cls: 'dose-warn' });
-    } else {
-      items.push({ name: 'Free Chlorine', amount: 'No action needed', note: `Target 2–4 ${u}`, reading: fc, readingUnit: u, param: 'FC', cls: 'dose-ok' });
-    }
-  }
-
-  if (cc !== null && cc > 0.5) {
-    const shockLvl = cya ? (cya * 0.2) : 10;
-    const oz = bleachOz(Math.max(0, shockLvl - (fc || 0)));
-    const shOz = shockOz(Math.max(0, shockLvl - (fc || 0)));
-    items.push({
-      name: 'SLAM shock — CC too high',
-      amount: `${oz.toFixed(0)} fl oz liquid  or  ${(shOz/16).toFixed(2)} lbs granular shock`,
-      note: `Raise FC to ${shockLvl.toFixed(0)} ${u} (CYA×0.2). Hold until CC < 0.5 ${u} and pool is clear.`,
-      reading: cc, readingUnit: u, param: 'CC', cls: 'dose-danger'
-    });
-  }
-
-  if (ph !== null) {
-    if (ph > 7.6) {
-      const taForCalc = ta || 100;
-      const oz = ((ph - 7.4) * poolGallons * (taForCalc / 100) * 0.004 * (31.45 / concs.acid)).toFixed(1);
-      items.push({ name: `Muriatic acid (${concs.acid}%)`, amount: `${oz} fl oz (${(oz / 128).toFixed(2)} gal)`, note: `Lower pH ${ph} → 7.4. Based on TA ${taForCalc} ${u}. Pour near return jet with pump running.`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-warn' });
-    } else if (ph < 7.2) {
-      const lbs = ((7.4 - ph) * poolGallons * 0.000219).toFixed(2);
-      items.push({ name: 'Add soda ash (pH+)', amount: `${lbs} lbs`, note: `Raise pH ${ph} → 7.4. Add in front of a return jet with pump running.`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-warn' });
-    } else {
-      items.push({ name: 'pH', amount: 'No action needed', note: `Target 7.2–7.6`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-ok' });
-    }
-  }
-
-  if (ta !== null) {
-    if (ta < 80) {
-      const lbs = ((80 - ta) * poolGallons * 0.000015).toFixed(1);
-      items.push({ name: 'Add baking soda (TA+)', amount: `${lbs} lbs`, note: `Raise TA ${ta} → 80 ${u}. Add in increments, retest each time.`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-warn' });
-    } else if (ta > 120) {
-      const oz = ((ta - 100) * poolGallons * 0.0001 * (31.45 / concs.acid)).toFixed(1);
-      items.push({ name: `Muriatic acid ${concs.acid}% (lower TA)`, amount: `${oz} fl oz (${(oz / 128).toFixed(2)} gal)`, note: `Lower TA ${ta} → 100 ${u}. Add in 2–3 doses with aeration between each to degas CO₂.`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-warn' });
-    } else {
-      items.push({ name: 'Total Alkalinity', amount: 'No action needed', note: `Target 80–120 ${u}`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-ok' });
-    }
-  }
-
-  if (ch !== null) {
-    if (ch < 200) {
-      const lbs = ((200 - ch) * poolGallons * 0.00002).toFixed(1);
-      items.push({ name: 'Add calcium chloride (CH+)', amount: `${lbs} lbs`, note: `Raise CH ${ch} → 200 ${u}. Dissolve in a bucket of water first, add slowly.`, reading: ch, readingUnit: u, param: 'CH', cls: 'dose-warn' });
-    } else if (ch > 400) {
-      items.push({ name: 'Calcium Hardness — high', amount: 'Partial drain/refill', note: `Above 400 ${u}. Replace 20–30% water with fresh.`, reading: ch, readingUnit: u, param: 'CH', cls: 'dose-warn' });
-    } else {
-      items.push({ name: 'Calcium Hardness', amount: 'No action needed', note: `Target 200–400 ${u}`, reading: ch, readingUnit: u, param: 'CH', cls: 'dose-ok' });
-    }
-  }
-
-  if (cya !== null) {
-    if (cya < 30) {
-      const lbs = ((40 - cya) * poolGallons / 1000000 * 8.34).toFixed(2);
-      const oz  = (lbs * 16).toFixed(0);
-      items.push({ name: 'Add stabilizer / CYA', amount: `${lbs} lbs (${oz} oz)`, note: `Raise CYA ${cya} → 40 ${u}. Dissolve in warm water first. Takes 1–2 weeks to fully register.`, reading: cya, readingUnit: u, param: 'CYA', cls: 'dose-warn' });
-    } else if (cya > 80) {
-      items.push({ name: 'CYA — high', amount: 'Partial drain/refill', note: `CYA ${cya} ${u} severely reduces chlorine effectiveness. Dilute with fresh water; no chemical fix.`, reading: cya, readingUnit: u, param: 'CYA', cls: 'dose-danger' });
-    } else if (cya > 50) {
-      items.push({ name: 'CYA — elevated', amount: 'Monitor closely', note: `CYA ${cya} ${u} is above ideal (30–50 ${u}). Avoid adding more stabilizer. Consider partial drain if trending up.`, reading: cya, readingUnit: u, param: 'CYA', cls: 'dose-warn' });
-    } else {
-      items.push({ name: 'Cyanuric Acid', amount: 'No action needed', note: `Target 30–50 ${u} for outdoor chlorine pool`, reading: cya, readingUnit: u, param: 'CYA', cls: 'dose-ok' });
-    }
-  }
-
-  if (tds !== null && tds > 1500) {
-    items.push({ name: 'TDS — elevated', amount: tds > 2500 ? 'Drain/refill recommended' : 'Monitor', note: `TDS ${tds} ${u}. ${tds > 2500 ? 'Above 2500 — partial drain and refill recommended.' : 'Approaching 1500 limit — monitor and reduce chemical inputs.'}`, reading: tds, readingUnit: u, param: 'TDS', cls: tds > 2500 ? 'dose-danger' : 'dose-warn' });
-  }
-
-  list.innerHTML = items.length ? items.map(i => `
-    <div class="dose-card ${i.cls}">
-      <div class="dose-reading">
-        <div class="dose-reading-label">${i.param}</div>
-        <div class="dose-reading-value">${i.reading}</div>
-        <div class="dose-reading-unit">${i.readingUnit}</div>
-      </div>
-      <div class="dose-body">
-        <p class="dose-name">${i.name}</p>
-        <p class="dose-amount">${i.amount}</p>
-        <p class="dose-note">${i.note}</p>
-      </div>
-    </div>
-  `).join('') : '<p style="font-size:14px;color:#888;">Enter readings on the Readings tab to see dosing recommendations.</p>';
-}
-
-function setConc(chem, val, btn) {
-  concs[chem] = val;
-  btn.parentElement.querySelectorAll('.conc-btn').forEach(b => b.classList.remove('sel'));
-  btn.classList.add('sel');
-  updateAll();
-}
-
-function logReading() {
-  const entry = {
-    date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
-          ' ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-    ts: Date.now(),
-    gallons: poolGallons,
-    fc: v('fc'), cc: v('cc'), ph: v('ph'), ta: v('ta'),
-    ch: v('ch'), cya: v('cya'), tds: v('tds'), temp: v('temp')
-  };
-  const hasData = [entry.fc, entry.cc, entry.ph, entry.ta, entry.ch, entry.cya, entry.tds, entry.temp].some(x => x !== null);
-  if (!hasData) { alert('Please enter at least one reading before logging.'); return; }
-  history.unshift(entry);
-  localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
-  document.getElementById('last-logged').textContent = 'Last logged: ' + entry.date;
-  renderHistory();
-}
-
-function deleteEntry(i) {
-  history.splice(i, 1);
-  localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
-  document.getElementById('last-logged').textContent = history.length > 0
-    ? 'Last logged: ' + history[0].date : 'No readings logged';
-  renderHistory();
-}
-
-function clearHistory() {
-  if (!confirm('Clear all logged readings? This cannot be undone.')) return;
-  history = [];
-  localStorage.removeItem('poolHistory_chlorine');
-  document.getElementById('last-logged').textContent = 'No readings logged';
-  renderHistory();
-}
-
-const TREND_PARAMS = {
-  fc:   { label: 'Free Chlorine', unit: 'ppm', color: '#639922' },
-  ph:   { label: 'pH',            unit: '',    color: '#1D9E75' },
-  ta:   { label: 'Alkalinity',    unit: 'ppm', color: '#D85A30' },
-  ch:   { label: 'Ca Hardness',   unit: 'ppm', color: '#BA7517' },
-  cya:  { label: 'CYA',           unit: 'ppm', color: '#7F77DD' },
-  tds:  { label: 'TDS',           unit: 'ppm', color: '#D4537E' },
-  temp: { label: 'Temp',          unit: '°F',  color: '#888780' }
-};
-
-function setTrend(p) { activeTrend = p; renderHistory(); }
-
-function renderHistory() {
-  const empty = document.getElementById('trend-empty');
-  const charts = document.getElementById('trend-charts');
-  if (history.length < 2) {
-    empty.style.display = ''; charts.style.display = 'none';
-    if (trendChart) { trendChart.destroy(); trendChart = null; }
-    return;
-  }
-  empty.style.display = 'none'; charts.style.display = '';
-
-  const sorted = [...history].sort((a, b) => a.ts - b.ts);
-  const labels = sorted.map(e => e.date);
-
-  document.getElementById('trend-legend').innerHTML = Object.entries(TREND_PARAMS).map(([key, p]) => {
-    const isSel = key === activeTrend;
-    return `<button class="trend-btn" onclick="setTrend('${key}')"
-      style="${isSel ? `background:${p.color}22;border-color:${p.color};color:${p.color};font-weight:500;` : ''}">
-      <span style="width:10px;height:10px;border-radius:2px;background:${p.color};display:inline-block;"></span>
-      ${p.label}
-    </button>`;
-  }).join('');
-
-  const p = TREND_PARAMS[activeTrend];
-  const data = sorted.map(e => e[activeTrend]);
-  const validData = data.filter(x => x !== null);
-  const dataMin = validData.length ? Math.min(...validData) : 0;
-  const dataMax = validData.length ? Math.max(...validData) : 10;
-  const pad = (dataMax - dataMin) * 0.2 || 1;
-
-  if (trendChart) { trendChart.destroy(); trendChart = null; }
-  const ctx = document.getElementById('trendChart').getContext('2d');
-  trendChart = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets: [{ label: p.label, data, borderColor: p.color, backgroundColor: p.color + '22', fill: true, tension: 0.3, pointRadius: 5, pointHoverRadius: 7, spanGaps: true }] },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => `${p.label}: ${c.parsed.y}${p.unit}` } } },
-      scales: {
-        y: { min: Math.max(0, dataMin - pad), max: dataMax + pad, grid: { color: 'rgba(128,128,128,0.1)' }, ticks: { color: '#888' } },
-        x: { grid: { display: false }, ticks: { color: '#888', maxRotation: 30, autoSkip: false } }
-      }
-    }
-  });
-
-  document.getElementById('history-list').innerHTML = history.slice(0, 15).map((e, i) => `
-    <div class="history-row">
-      <span class="history-date">${e.date}</span>
-      ${e.gallons ? `<span style="font-size:12px;color:#3B6D11;font-weight:500;">${e.gallons.toLocaleString()} gal</span>` : ''}
-      ${e.fc   !== null ? `<span><b>FC</b> ${e.fc}</span>` : ''}
-      ${e.ph   !== null ? `<span><b>pH</b> ${e.ph}</span>` : ''}
-      ${e.ta   !== null ? `<span><b>TA</b> ${e.ta}</span>` : ''}
-      ${e.ch   !== null ? `<span><b>CH</b> ${e.ch}</span>` : ''}
-      ${e.cya  !== null ? `<span><b>CYA</b> ${e.cya}</span>` : ''}
-      ${e.tds  !== null ? `<span><b>TDS</b> ${e.tds}</span>` : ''}
-      ${e.temp !== null ? `<span><b>Temp</b> ${e.temp}°F</span>` : ''}
-      <button class="del-btn" onclick="deleteEntry(${i})" title="Delete this entry" aria-label="Delete entry from ${e.date}"><i class="ti ti-x" aria-hidden="true"></i></button>
-    </div>
-  `).join('');
-}
-
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + name).classList.add('active');
-  btn.classList.add('active');
-  if (name === 'trends') renderHistory();
-}
-
-if (history.length > 0) {
-  document.getElementById('last-logged').textContent = 'Last logged: ' + history[0].date;
-}
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js" integrity="sha384-dug+JxfBvklEQdJ4AYuBBAIScUz0bVN73xpy273gcAwHjb3qI0fXmuYNaNfdyYJG" crossorigin="anonymous"></script>
+<script src="chlorine-pool-calculator.js" defer></script>
 </body>
 </html>
