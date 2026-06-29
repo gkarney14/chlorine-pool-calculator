@@ -439,6 +439,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('unit-ppm').addEventListener('click', () => setUnit('ppm'));
   document.getElementById('unit-mgl').addEventListener('click', () => setUnit('mgl'));
+  document.getElementById('ch-mode-ch').addEventListener('click', () => setChMode('ch'));
+  document.getElementById('ch-mode-th').addEventListener('click', () => setChMode('th'));
 
   document.getElementById('pool-vol').addEventListener('input', updateVolume);
 
