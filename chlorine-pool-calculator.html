@@ -268,8 +268,16 @@
       <p class="section-title">Log history</p>
       <div id="history-list"></div>
       <br>
-      <a class="clear-link" href="#" id="clear-history-link">
-        <i class="ti ti-trash" aria-hidden="true"></i> Clear all history
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:4px;">
+        <button id="export-btn" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#3B6D11;background:none;border:none;cursor:pointer;padding:6px 0;">
+          <i class="ti ti-download" aria-hidden="true"></i> Export history
+        </button>
+        <button id="import-btn" style="display:inline-flex;align-items:center;gap:5px;font-size:13px;color:#3B6D11;background:none;border:none;cursor:pointer;padding:6px 0;">
+          <i class="ti ti-upload" aria-hidden="true"></i> Import history
+        </button>
+        <input type="file" id="import-file" accept=".json" style="display:none;">
+        <a class="clear-link" href="#" id="clear-history-link" style="margin-left:auto;">
+          <i class="ti ti-trash" aria-hidden="true"></i> Clear all history
       </a>
     </div>
   </div>

@@ -287,6 +287,37 @@ function deleteEntry(i) {
   renderHistory();
 }
 
+function exportHistory() {
+  const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'chlorine-pool-history.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importHistory(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error('Invalid format');
+      const existing = new Set(history.map(h => h.ts));
+      const merged = [...history, ...imported.filter(h => h.ts && !existing.has(h.ts))];
+      merged.sort((a, b) => b.ts - a.ts);
+      history = merged;
+      localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
+      document.getElementById('last-logged').textContent = history.length > 0
+        ? 'Last logged: ' + history[0].date : 'No readings logged';
+      renderHistory();
+    } catch {
+      alert('Could not read file — make sure it is a pool history JSON export.');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function clearHistory() {
   if (!confirm('Clear all logged readings? This cannot be undone.')) return;
   history = [];
@@ -449,6 +480,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('log-btn').addEventListener('click', logReading);
+
+  document.getElementById('export-btn').addEventListener('click', exportHistory);
+  document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+  document.getElementById('import-file').addEventListener('change', e => {
+    if (e.target.files[0]) importHistory(e.target.files[0]);
+    e.target.value = '';
+  });
 
   document.getElementById('clear-history-link').addEventListener('click', e => {
     e.preventDefault();
