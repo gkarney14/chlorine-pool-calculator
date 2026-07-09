@@ -194,8 +194,11 @@ function updateDosing(fc, cc, ph, ta, ch, cya, tds, temp) {
   if (ph !== null) {
     if (ph > 7.6) {
       const taForCalc = ta || 100;
-      const oz = ((ph - 7.4) * poolGallons * (taForCalc / 100) * 0.004 * (31.45 / concs.acid)).toFixed(1);
-      items.push({ name: `Muriatic acid (${concs.acid}%)`, amount: `${oz} fl oz (${(oz / 128).toFixed(2)} gal)`, note: `Lower pH ${ph} → 7.4. Based on TA ${taForCalc} ${u}. Pour near return jet with pump running.`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-warn' });
+      const ACID_WT = { 14.5: 1.07, 31.45: 1.16, 34: 1.168 };
+      const densityRatio = (0.3145 * 1.16) / ((concs.acid / 100) * (ACID_WT[concs.acid] || 1.12));
+      const oz = ((ph - 7.4) * poolGallons * (taForCalc / 100) * 0.004 * densityRatio).toFixed(1);
+      const taNote = ta === null ? ' (TA defaulted to 100 — enter TA reading for accuracy)' : '';
+      items.push({ name: `Muriatic acid (${concs.acid}%)`, amount: `${oz} fl oz (${(oz / 128).toFixed(2)} gal)`, note: `Lower pH ${ph} → 7.4. TA ${taForCalc} ${u}.${taNote} Retest after 30 min of circulation before adding more.`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-warn' });
     } else if (ph < 7.2) {
       const lbs = ((7.4 - ph) * poolGallons * 0.000219).toFixed(2);
       items.push({ name: 'Add soda ash (pH+)', amount: `${lbs} lbs`, note: `Raise pH ${ph} → 7.4. Add in front of a return jet with pump running.`, reading: ph, readingUnit: '', param: 'pH', cls: 'dose-warn' });
@@ -209,7 +212,9 @@ function updateDosing(fc, cc, ph, ta, ch, cya, tds, temp) {
       const lbs = ((80 - ta) * poolGallons * 0.000015).toFixed(1);
       items.push({ name: 'Add baking soda (TA+)', amount: `${lbs} lbs`, note: `Raise TA ${ta} → 80 ${u}. Add in increments, retest each time.`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-warn' });
     } else if (ta > 120) {
-      const oz = ((ta - 100) * poolGallons * 0.0001 * (31.45 / concs.acid)).toFixed(1);
+      const ACID_WT2 = { 14.5: 1.07, 31.45: 1.16, 34: 1.168 };
+      const dr2 = (0.3145 * 1.16) / ((concs.acid / 100) * (ACID_WT2[concs.acid] || 1.12));
+      const oz = ((ta - 100) * poolGallons * 0.0001 * dr2).toFixed(1);
       items.push({ name: `Muriatic acid ${concs.acid}% (lower TA)`, amount: `${oz} fl oz (${(oz / 128).toFixed(2)} gal)`, note: `Lower TA ${ta} → 100 ${u}. Add in 2–3 doses with aeration between each to degas CO₂.`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-warn' });
     } else {
       items.push({ name: 'Total Alkalinity', amount: 'No action needed', note: `Target 80–120 ${u}`, reading: ta, readingUnit: u, param: 'TA', cls: 'dose-ok' });
