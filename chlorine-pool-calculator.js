@@ -277,6 +277,7 @@ function logReading() {
   localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
   document.getElementById('last-logged').textContent = 'Last logged: ' + entry.date;
   renderHistory();
+  folderSave();
 }
 
 function deleteEntry(i) {
@@ -285,7 +286,137 @@ function deleteEntry(i) {
   document.getElementById('last-logged').textContent = history.length > 0
     ? 'Last logged: ' + history[0].date : 'No readings logged';
   renderHistory();
+  folderSave();
 }
+
+// ── Folder persistence (File System Access API) ──────────────────────────
+const FS_SUPPORTED = ('showDirectoryPicker' in window);
+const DB_NAME = 'poolCalcDB_chlorine';
+const DATA_FILE = 'chlorine-pool-history.json';
+let dirHandle = null;
+
+function idbOpen() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    r.onsuccess = e => res(e.target.result);
+    r.onerror = e => rej(e.target.error);
+  });
+}
+async function idbPut(key, val) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(val, key);
+    tx.oncomplete = res; tx.onerror = e => rej(e.target.error);
+  });
+}
+async function idbGet(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readonly');
+    const r = tx.objectStore('handles').get(key);
+    r.onsuccess = e => res(e.target.result); r.onerror = e => rej(e.target.error);
+  });
+}
+async function idbDelete(key) {
+  const db = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').delete(key);
+    tx.oncomplete = res; tx.onerror = e => rej(e.target.error);
+  });
+}
+
+async function folderSave() {
+  if (!dirHandle) return;
+  try {
+    const fh = await dirHandle.getFileHandle(DATA_FILE, { create: true });
+    const w = await fh.createWritable();
+    await w.write(JSON.stringify(history, null, 2));
+    await w.close();
+  } catch (e) { console.warn('Folder save failed:', e); }
+}
+
+async function folderLoad() {
+  if (!dirHandle) return;
+  try {
+    const fh = await dirHandle.getFileHandle(DATA_FILE);
+    const file = await fh.getFile();
+    const data = JSON.parse(await file.text());
+    if (Array.isArray(data)) {
+      history = data;
+      localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
+      if (history.length > 0)
+        document.getElementById('last-logged').textContent = 'Last logged: ' + history[0].date;
+      renderHistory();
+    }
+  } catch (e) { if (e.name !== 'NotFoundError') console.warn('Folder load failed:', e); }
+}
+
+function updateFolderUI(state) {
+  const status = document.getElementById('folder-status');
+  const pickBtn = document.getElementById('folder-pick-btn');
+  const reconnBtn = document.getElementById('folder-reconnect-btn');
+  const discBtn = document.getElementById('folder-disconnect-btn');
+  if (state === 'connected') {
+    status.textContent = '📁 ' + dirHandle.name + ' — auto-saving';
+    status.style.color = '#3B6D11';
+    pickBtn.textContent = 'Change';
+    reconnBtn.style.display = 'none';
+    discBtn.style.display = '';
+  } else if (state === 'prompt') {
+    status.textContent = '📁 ' + dirHandle.name + ' — permission needed';
+    status.style.color = '#854F0B';
+    pickBtn.style.display = 'none';
+    reconnBtn.style.display = '';
+    discBtn.style.display = '';
+  } else {
+    status.textContent = FS_SUPPORTED ? 'No data folder set' : 'Folder sync not supported in this browser (use Chrome/Edge)';
+    status.style.color = '#888';
+    pickBtn.textContent = 'Set folder';
+    pickBtn.style.display = FS_SUPPORTED ? '' : 'none';
+    reconnBtn.style.display = 'none';
+    discBtn.style.display = 'none';
+  }
+}
+
+async function pickFolder() {
+  try {
+    dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    await idbPut('dirHandle', dirHandle);
+    await folderLoad();
+    await folderSave();
+    updateFolderUI('connected');
+  } catch (e) { if (e.name !== 'AbortError') alert('Could not open folder: ' + e.message); }
+}
+
+async function reconnectFolder() {
+  if (!dirHandle) return;
+  try {
+    const perm = await dirHandle.requestPermission({ mode: 'readwrite' });
+    if (perm === 'granted') { await folderLoad(); await folderSave(); updateFolderUI('connected'); }
+    else updateFolderUI('prompt');
+  } catch (e) { console.warn('Reconnect failed:', e); }
+}
+
+async function disconnectFolder() {
+  dirHandle = null;
+  await idbDelete('dirHandle');
+  updateFolderUI('none');
+}
+
+async function initFolder() {
+  if (!FS_SUPPORTED) { updateFolderUI('none'); return; }
+  try {
+    dirHandle = await idbGet('dirHandle');
+    if (!dirHandle) { updateFolderUI('none'); return; }
+    const perm = await dirHandle.queryPermission({ mode: 'readwrite' });
+    if (perm === 'granted') { await folderLoad(); updateFolderUI('connected'); }
+    else updateFolderUI('prompt');
+  } catch (e) { dirHandle = null; updateFolderUI('none'); }
+}
+// ─────────────────────────────────────────────────────────────────────────
 
 function exportHistory() {
   const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
@@ -324,6 +455,7 @@ function clearHistory() {
   localStorage.removeItem('poolHistory_chlorine');
   document.getElementById('last-logged').textContent = 'No readings logged';
   renderHistory();
+  folderSave();
 }
 
 const TREND_PARAMS = {
@@ -481,6 +613,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('log-btn').addEventListener('click', logReading);
 
+  document.getElementById('folder-pick-btn').addEventListener('click', pickFolder);
+  document.getElementById('folder-reconnect-btn').addEventListener('click', reconnectFolder);
+  document.getElementById('folder-disconnect-btn').addEventListener('click', disconnectFolder);
+
   document.getElementById('export-btn').addEventListener('click', exportHistory);
   document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
   document.getElementById('import-file').addEventListener('change', e => {
@@ -509,4 +645,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (lastDosing && lastDosing.items && lastDosing.items.length > 0) {
     renderDosingItems(lastDosing.items, lastDosing.date);
   }
+
+  initFolder();
 });
