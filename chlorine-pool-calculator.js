@@ -1,4 +1,5 @@
-let poolGallons = null;
+let poolGallons = parseFloat(localStorage.getItem('poolGallons_chlorine') || '') || null;
+let poolName = localStorage.getItem('poolName_chlorine') || '';
 let concs = { bleach: 10, shock: 65, acid: 14.5, trichlor: 90 };
 let history = JSON.parse(localStorage.getItem('poolHistory_chlorine') || '[]');
 let lastDosing = JSON.parse(localStorage.getItem('poolLastDosing_chlorine') || 'null');
@@ -19,6 +20,11 @@ function escapeHtml(str) {
 function updateVolume() {
   const raw = parseFloat(document.getElementById('pool-vol').value);
   poolGallons = (!isNaN(raw) && raw > 0) ? raw : null;
+  if (poolGallons) {
+    localStorage.setItem('poolGallons_chlorine', poolGallons);
+  } else {
+    localStorage.removeItem('poolGallons_chlorine');
+  }
   const disp = document.getElementById('vol-display');
   if (poolGallons) {
     disp.textContent = poolGallons.toLocaleString() + ' gal loaded';
@@ -29,6 +35,37 @@ function updateVolume() {
     document.getElementById('dosing-volume-label').textContent = 'Chemical adjustments';
   }
   updateAll();
+  folderSave();
+}
+
+function updatePoolTitle() {
+  document.title = poolName
+    ? poolName + ' — Chlorine Pool Chemistry'
+    : 'Chlorine Pool Chemistry Calculator';
+}
+
+function initPoolSettings() {
+  const nameEl = document.getElementById('pool-name');
+  const volEl  = document.getElementById('pool-vol');
+  // Restore persisted values into UI
+  if (nameEl) nameEl.value = poolName;
+  if (volEl && poolGallons) {
+    volEl.value = poolGallons;
+    // Sync the display labels without triggering a full folderSave on init
+    const disp = document.getElementById('vol-display');
+    if (disp) disp.textContent = poolGallons.toLocaleString() + ' gal loaded';
+    const dvl = document.getElementById('dosing-volume-label');
+    if (dvl) dvl.textContent = 'Chemical adjustments — ' + poolGallons.toLocaleString() + ' gal';
+  }
+  updatePoolTitle();
+  if (nameEl) {
+    nameEl.addEventListener('input', () => {
+      poolName = nameEl.value;
+      localStorage.setItem('poolName_chlorine', poolName);
+      updatePoolTitle();
+      folderSave();
+    });
+  }
 }
 
 function setChMode(mode) {
@@ -338,7 +375,7 @@ async function folderSave() {
   try {
     const fh = await dirHandle.getFileHandle(DATA_FILE, { create: true });
     const w = await fh.createWritable();
-    await w.write(JSON.stringify(history, null, 2));
+    await w.write(JSON.stringify({ history, poolName, poolGallons }, null, 2));
     await w.close();
   } catch (e) { console.warn('Folder save failed:', e); }
 }
@@ -349,12 +386,35 @@ async function folderLoad() {
     const fh = await dirHandle.getFileHandle(DATA_FILE);
     const file = await fh.getFile();
     const data = JSON.parse(await file.text());
-    if (Array.isArray(data)) {
-      history = data;
-      localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
-      if (history.length > 0)
-        document.getElementById('last-logged').textContent = 'Last logged: ' + history[0].date;
-      renderHistory();
+    // Support old format (plain array) and new format ({ history, poolName, poolGallons })
+    const rows = Array.isArray(data) ? data : (data.history || []);
+    history = rows;
+    localStorage.setItem('poolHistory_chlorine', JSON.stringify(history));
+    if (history.length > 0)
+      document.getElementById('last-logged').textContent = 'Last logged: ' + history[0].date;
+    renderHistory();
+    if (!Array.isArray(data)) {
+      if (data.poolName !== undefined) {
+        poolName = data.poolName;
+        localStorage.setItem('poolName_chlorine', poolName);
+        const nameEl = document.getElementById('pool-name');
+        if (nameEl) nameEl.value = poolName;
+        updatePoolTitle();
+      }
+      if (data.poolGallons !== undefined) {
+        poolGallons = data.poolGallons;
+        if (poolGallons) localStorage.setItem('poolGallons_chlorine', poolGallons);
+        const volEl = document.getElementById('pool-vol');
+        if (volEl) volEl.value = poolGallons || '';
+        // Sync display labels
+        const disp = document.getElementById('vol-display');
+        if (disp) disp.textContent = poolGallons ? poolGallons.toLocaleString() + ' gal loaded' : '';
+        const dvl = document.getElementById('dosing-volume-label');
+        if (dvl) dvl.textContent = poolGallons
+          ? 'Chemical adjustments — ' + poolGallons.toLocaleString() + ' gal'
+          : 'Chemical adjustments';
+        updateAll();
+      }
     }
   } catch (e) { if (e.name !== 'NotFoundError') console.warn('Folder load failed:', e); }
 }
@@ -651,5 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDosingItems(lastDosing.items, lastDosing.date);
   }
 
+  initPoolSettings();
   initFolder();
 });
